@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Colour match</title>
+<style>
+:root{--bg:#e4e4e2;--cd:#f4f4f2;--tx:#1c1c1e;--mu:#5c5c60;--ln:#c6c6c3;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#2a2a2c;--cd:#38383a;--tx:#f1f1ef;--mu:#a9a9ad;--ln:#4b4b4e;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#2a2a2c;--cd:#38383a;--tx:#f1f1ef;--mu:#a9a9ad;--ln:#4b4b4e;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.45 "Avenir Next","Segoe UI",system-ui,-apple-system,sans-serif}
+main{max-width:680px;margin:0 auto;padding:28px 16px 56px}
+h1{font-size:clamp(36px,10vw,56px);line-height:1;letter-spacing:-.035em;margin:0 0 12px;font-weight:800}
+.sub{color:var(--mu);margin:0 0 22px;max-width:46ch}
+.ups{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.up{position:relative;display:flex;align-items:center;justify-content:center;height:168px;background:var(--cd);border:2px dashed var(--ln);border-radius:14px;overflow:hidden;cursor:pointer;text-align:center;padding:10px}
+.up:focus-within{outline:2px solid var(--tx);outline-offset:2px}
+.up img{display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.up.has{border-style:solid}
+.up.has img{display:block}
+.up.has .ph{display:none}
+.ph{display:block}
+.ph b{display:block}
+.ph span{color:var(--mu);font-size:14px}
+.k{display:flex;align-items:center;gap:12px;margin:18px 0 2px}
+.k input{flex:1;accent-color:var(--tx)}
+.k output{min-width:1.5em;font-weight:700;text-align:right}
+.hint{color:var(--mu);margin:14px 0 0}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:14px}
+@media(min-width:560px){.grid{grid-template-columns:repeat(3,1fr)}}
+.c{all:unset;box-sizing:border-box;display:flex;flex-direction:column;background:var(--cd);border-radius:6px;cursor:pointer;overflow:hidden;box-shadow:0 0 0 1px var(--ln)}
+.c:focus-visible{outline:2px solid var(--tx);outline-offset:2px}
+.sw{height:112px;display:block}
+.t{display:block;padding:10px 12px 12px}
+.t b{display:block;font-size:17px;letter-spacing:-.01em}
+.t i{display:block;font-style:normal;font-weight:600;font-variant-numeric:tabular-nums}
+.t em{display:block;font-style:normal;color:var(--mu);font-size:13px;margin-top:4px}
+.t small{display:block;color:var(--mu);font-size:13px;margin-top:8px;padding-top:8px;border-top:1px solid var(--ln)}
+.all{margin-top:18px;padding:13px 20px;border:0;border-radius:999px;background:var(--tx);color:var(--bg);font:inherit;font-weight:700;cursor:pointer}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:999px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.on{opacity:1}
+</style>
+</head>
+<body>
+<main>
+<h1>Colour match</h1>
+<p class="sub">Add your drawing and a reference. You’ll get the colours to use, with names and hex codes. Nothing leaves your device.</p>
+<div class="ups">
+<label class="up" id="draw"><input type="file" accept="image/*" hidden><img alt="Your drawing"><span class="ph"><b>Your drawing</b><span>Tap to add</span></span></label>
+<label class="up" id="ref"><input type="file" accept="image/*" hidden><img alt="Your reference"><span class="ph"><b>Your reference</b><span>Tap to add</span></span></label>
+</div>
+<div class="k"><label for="k">Colours</label><input id="k" type="range" min="4" max="10" value="6"><output id="ko">6</output></div>
+<div id="out"></div>
+</main>
+<div id="toast" role="status"></div>
+<script>
+const NAMES="Black:000000,Charcoal:36454F,Dim Gray:696969,Gray:808080,Silver:C0C0C0,Light Gray:D3D3D3,White:FFFFFF,Ivory:FFFFF0,Cream:FFFDD0,Beige:F5F5DC,Linen:FAF0E6,Wheat:F5DEB3,Tan:D2B48C,Sand:C2B280,Khaki:F0E68C,Mustard:FFDB58,Lemon:FFF44F,Yellow:FFFF00,Gold:FFD700,Amber:FFBF00,Ochre:CC7722,Goldenrod:DAA520,Orange:FFA500,Tangerine:F28500,Pumpkin:FF7518,Coral:FF7F50,Peach:FFE5B4,Apricot:FBCEB1,Salmon:FA8072,Terracotta:E2725B,Burnt Sienna:E97451,Vermilion:E34234,Red:FF0000,Crimson:DC143C,Cadmium Red:E30022,Rust:B7410E,Mahogany:C04000,Copper:B87333,Sienna:A0522D,Chocolate:D2691E,Chestnut:954535,Saddle Brown:8B4513,Coffee:6F4E37,Dark Brown:654321,Raw Umber:826644,Burnt Umber:8A3324,Maroon:800000,Burgundy:800020,Wine:722F37,Old Rose:C08081,Pink:FFC0CB,Blush:DE5D83,Hot Pink:FF69B4,Raspberry:E30B5C,Magenta:FF00FF,Mulberry:C54B8C,Orchid:DA70D6,Plum:DDA0DD,Mauve:E0B0FF,Lilac:C8A2C8,Lavender:E6E6FA,Periwinkle:CCCCFF,Violet:8F00FF,Purple:800080,Eggplant:614051,Indigo:4B0082,Slate Blue:6A5ACD,Ultramarine:120A8F,Navy:000080,Midnight Blue:191970,Prussian Blue:003153,Cobalt Blue:0047AB,Denim:1560BD,Royal Blue:4169E1,Cornflower:6495ED,Cerulean:007BA7,Sky Blue:87CEEB,Baby Blue:89CFF0,Powder Blue:B0E0E6,Steel Blue:4682B4,Slate Gray:708090,Storm Blue:4F666A,Teal:008080,Turquoise:40E0D0,Aquamarine:7FFFD4,Seafoam:9FE2BF,Mint:3EB489,Emerald:50C878,Jade:00A86B,Viridian:40826D,Pine:01796F,Forest Green:228B22,Hunter Green:355E3B,Phthalo Green:123524,Fern:4F7942,Sap Green:507D2A,Green:008000,Lime:32CD32,Chartreuse:7FFF00,Olive:808000,Moss:8A9A5B,Sage:9CAF88,Ash:B2BEB5,Stone:928E85,Taupe:8B7765";
+const $=s=>document.querySelector(s);
+const S={draw:null,ref:null,txt:''};
+const d2=(p,q)=>(p[0]-q[0])**2+(p[1]-q[1])**2+(p[2]-q[2])**2;
+const f=t=>t>.008856?Math.cbrt(t):7.787*t+16/116;
+function lab(r,g,b){const l=v=>(v/=255)<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4);r=l(r);g=l(g);b=l(b);const x=f((.4124*r+.3576*g+.1805*b)/.95047),y=f(.2126*r+.7152*g+.0722*b),z=f((.0193*r+.1192*g+.9505*b)/1.08883);return[116*y-16,500*(x-y),200*(y-z)]}
+const N=NAMES.split(',').map(s=>{const[n,h]=s.split(':'),v=parseInt(h,16);return{n,l:lab(v>>16,v>>8&255,v&255)}});
+function name(l){let b=N[0],m=1e9;for(const o of N){const d=d2(o.l,l);if(d<m){m=d;b=o}}return b.n}
+const hx=r=>'#'+r.map(v=>v.toString(16).padStart(2,'0')).join('').toUpperCase();
+
+function load(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>res(im);im.onerror=rej;im.src=r.result};r.onerror=rej;r.readAsDataURL(file)})}
+function sample(im,max){const s=Math.min(1,max/Math.max(im.naturalWidth,im.naturalHeight)),w=Math.max(1,Math.round(im.naturalWidth*s)),h=Math.max(1,Math.round(im.naturalHeight*s));const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d',{willReadFrequently:true});x.fillStyle='#fff';x.fillRect(0,0,w,h);x.drawImage(im,0,0,w,h);return{c,x,w,h}}
+function pix(im,skipPlain){const{x,w,h}=sample(im,90),d=x.getImageData(0,0,w,h).data,o=[];for(let i=0;i<d.length;i+=4){const c=[d[i],d[i+1],d[i+2]],l=lab(...c);if(skipPlain&&Math.hypot(l[1],l[2])<10)continue;o.push({c,l})}o.total=w*h;return o}
+
+function km(px,k){
+ let seed=7;const rnd=()=>(seed=seed*16807%2147483647)/2147483647;
+ let C=[px[rnd()*px.length|0].l];const D=new Float64Array(px.length).fill(1e9);
+ while(C.length<k){let s=0;const last=C[C.length-1];px.forEach((p,i)=>{D[i]=Math.min(D[i],d2(p.l,last));s+=D[i]});let t=rnd()*s,i=0;for(;i<px.length-1&&(t-=D[i])>0;i++);C.push(px[i].l)}
+ const A=new Int32Array(px.length);
+ for(let it=0;it<12;it++){
+  px.forEach((p,i)=>{let b=0,m=1e9;C.forEach((c,j)=>{const d=d2(p.l,c);if(d<m){m=d;b=j}});A[i]=b});
+  const T=C.map(()=>[0,0,0,0]);px.forEach((p,i)=>{const t=T[A[i]];t[0]+=p.l[0];t[1]+=p.l[1];t[2]+=p.l[2];t[3]++});
+  C=C.map((c,j)=>T[j][3]?[T[j][0]/T[j][3],T[j][1]/T[j][3],T[j][2]/T[j][3]]:c)}
+ const R=C.map(()=>({n:0,r:0,g:0,b:0}));px.forEach((p,i)=>{const o=R[A[i]];o.n++;o.r+=p.c[0];o.g+=p.c[1];o.b+=p.c[2]});
+ return R.filter(o=>o.n).map(o=>{const rgb=[o.r/o.n,o.g/o.n,o.b/o.n].map(Math.round);return{rgb,lab:lab(...rgb),n:o.n,share:o.n/px.length}})
+}
+function pal(px,k){
+ if(!px.length)return[];
+ const K=[];for(const c of km(px,Math.min(k,px.length)).sort((a,b)=>b.n-a.n)){const t=K.find(x=>Math.sqrt(d2(x.lab,c.lab))<7);t?(t.n+=c.n,t.share+=c.share):K.push(c)}
+ return K
+}
+
+function status(c){
+ const D=S.draw.pal;
+ if(!D.length)return'Not in your drawing yet. Add this.';
+ let b=D[0],m=1e9;for(const x of D){const d=Math.sqrt(d2(x.lab,c.lab));if(d<m){m=d;b=x}}
+ if(m<10)return'Already in your drawing.';
+ if(m>35)return'Not in your drawing yet. Add this.';
+ const dl=c.lab[0]-b.lab[0],da=c.lab[1]-b.lab[1],db=c.lab[2]-b.lab[2],dc=Math.hypot(c.lab[1],c.lab[2])-Math.hypot(b.lab[1],b.lab[2]),t=[];
+ if(Math.abs(dl)>6)t.push(dl>0?'lighter':'darker');
+ if(Math.abs(da)>6)t.push(da>0?'redder':'greener');
+ if(Math.abs(db)>6)t.push(db>0?'yellower':'bluer');
+ if(Math.abs(dc)>6)t.push(dc>0?'more vivid':'duller');
+ return`Closest in your drawing is ${hx(b.rgb)}. Make it ${t.slice(0,3).join(', ')||'a touch different'}.`
+}
+
+function render(){
+ const out=$('#out');
+ if(!S.ref){out.innerHTML='<p class="hint">Add a reference image to get your palette.</p>';return}
+ const P=pal(S.ref.px,+$('#k').value),role=P.map(()=>'Mid-tone'),used=new Set();
+ const pick=(i,t)=>{if(!used.has(i)){used.add(i);role[i]=t}};
+ const best=fn=>P.reduce((b,c,i)=>fn(c)>fn(P[b])?i:b,0);
+ pick(0,'Main colour');pick(best(c=>-c.lab[0]),'Shadows');pick(best(c=>c.lab[0]),'Highlights');pick(best(c=>Math.hypot(c.lab[1],c.lab[2])),'Accent');
+ S.txt=P.map((c,i)=>`${name(c.lab)}: ${hx(c.rgb)} (${role[i]})`).join('\n');
+ out.innerHTML=(S.draw?'':'<p class="hint">Add your drawing to see which of these it already has.</p>')+
+ '<div class="grid">'+P.map((c,i)=>{const h=hx(c.rgb);return`<button class="c" data-t="${h}"><span class="sw" style="background:${h}"></span><span class="t"><b>${name(c.lab)}</b><i>${h}</i><em>${role[i]}, ${Math.max(1,Math.round(c.share*100))}% of reference</em>${S.draw?`<small>${status(c)}</small>`:''}</span></button>`}).join('')+'</div><button class="all" data-all>Copy all colours</button>'
+}
+
+let tt;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),1600)}
+function fb(t){const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();try{document.execCommand('copy');toast('Copied')}catch(e){toast(t)}a.remove()}
+function copy(t){try{navigator.clipboard.writeText(t).then(()=>toast('Copied'),()=>fb(t))}catch(e){fb(t)}}
+$('#out').addEventListener('click',e=>{const b=e.target.closest('button');if(b)copy(b.hasAttribute('data-all')?S.txt:b.dataset.t)});
+$('#k').addEventListener('input',e=>{$('#ko').textContent=e.target.value;render()});
+
+async function take(kind,file){
+ if(!file||!file.type.startsWith('image/'))return;
+ try{
+  const im=await load(file),lbl=$('#'+kind);
+  lbl.querySelector('img').src=sample(im,480).c.toDataURL('image/jpeg',.82);lbl.classList.add('has');
+  const px=pix(im,kind==='draw');
+  S[kind]={px,pal:kind==='draw'?pal(px,6).filter(c=>c.n>=.01*px.total):null};
+  render()
+ }catch(e){toast('Couldn’t read that image')}
+}
+document.querySelectorAll('label.up').forEach(l=>{
+ l.querySelector('input').addEventListener('change',e=>take(l.id,e.target.files[0]));
+ l.addEventListener('dragover',e=>e.preventDefault());
+ l.addEventListener('drop',e=>{e.preventDefault();take(l.id,e.dataTransfer.files[0])})
+});
+render();
+</script>
+</body>
+</html>
